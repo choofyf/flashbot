@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>BSC Flashbot</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha2/css/bootstrap.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background-color: #000;
+      color: #00ff00;
+      font-family: "Courier New", monospace;
+      font-size: 16px;
+      padding: 20px;
+    }
+
+    .container {
+      margin-top: 50px;
+    }
+    
+    .result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+    .console {
+      margin-top: 20px;
+      padding: 10px;
+      height: 300px;
+      background-color: transparent;
+      border: 1px solid #00ff00;
+      overflow-y: scroll;
+    }
+    
+    input[type="text"] {
+      background-color: transparent;
+      border: none;
+      border-bottom: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: "Courier New", monospace;
+      font-size: 16px;
+    }
+    
+    .btn-transparent {
+      background-color: transparent;
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: "Courier New", monospace;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>BSC Flashbot</h1>
+     
+    <form action="/submit" method="POST" form id="transactionForm">
+      <div class="mb-3">
+        <label for="sender_private_key" class="form-label">Sender's Private Key:</label>
+        <input type="text" class="form-control" id="sender_private_key" name="sender_private_key">
+      </div>
+    
+      <div class="mb-3">
+        <label for="sponsor_private_key" class="form-label">Sponsor's Private Key:</label>
+        <input type="text" class="form-control" id="sponsor_private_key" name="sponsor_private_key">
+      </div>
+      
+      <div class="mb-3">
+        <label for="token_address" class="form-label">Token Address:</label>
+        <input type="text" class="form-control" id="token_address" name="token_address">
+      </div>
+      <div class="mb-3">
+        <label for="gas_price" class="form-label">Gas Price (in Gwei):</label>
+        <input type="text" class="form-control" id="gas_price" name="gas_price" placeholder="5">
+      </div>
+      
+      <div class="mb-3">
+        <label for="gas_limit" class="form-label">Gas Limit:</label>
+        <input type="text" class="form-control" id="gas_limit" name="gas_limit" placeholder="21000">
+      </div>
+  
+      <button type="button" class="btn btn-transparent" onclick="sendTransaction()">Send Transaction</button>
+
+    </form>
+  
+    <div id="result" class="result"></div>
+    
+    <div id="console" class="console"></div>
+    <div class="mb-3">
+      <label for="staking-address" class="form-label">Staking Contract Address:</label>
+      <input type="text" class="form-control" id="staking-address" name="staking-address" onchange="fetchABI()">
+    </div>
+    
+    <!-- Панель для отображения ABI и функций контракта -->
+    <div id="abi-panel" style="display:none;">
+      <h3>Contract ABI</h3>
+      <pre id="contract-abi"></pre>
+      <h4>Read Functions</h4>
+      <div id="read-functions"></div>
+    </div>
+    
+  </div>
+
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha2/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function fetchABI() {
+  var address = document.getElementById("staking-address").value;
+  // Запрос к серверу для получения ABI
+  fetch('/get_abi', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ contractAddress: address })
+  })
+  .then(response => response.json())
+  .then(data => {
+    document.getElementById("contract-abi").textContent = JSON.stringify(data.abi, null, 2);
+    displayReadFunctions(data.abi);
+    document.getElementById("abi-panel").style.display = "block";
+  });
+}
+ function sendTransaction() {
+  var formData = new FormData(document.getElementById("transactionForm"));
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "/submit", true);
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      var response = JSON.parse(xhr.responseText);
+      document.getElementById("result").innerHTML = response.message;
+    }
+  };
+  xhr.onprogress = function(event) {
+    document.getElementById("console").innerHTML += event.data;
+  };
+  xhr.send(formData);
+}
+function displayReadFunctions(abi) {
+  // Отфильтруйте и отобразите функции чтения контракта
+  var readFunctionsHtml = '';
+  abi.forEach(function(item) {
+    if (item.type === 'function' && item.stateMutability === 'view') {
+      readFunctionsHtml += `<p>${item.name}</p>`;
+      // Добавьте дополнительный HTML для параметров и вызова функции, если необходимо
+    }
+  });
+  document.getElementById("read-functions").innerHTML = readFunctionsHtml;
+}
+// Function to display console output
+function displayConsoleOutput(message) {
+  var consoleElement = document.getElementById("console");
+  consoleElement.innerHTML += message + "<br>";
+}
+
+// Create EventSource to stream console output
+var eventSource = new EventSource("/stream_console_output");
+eventSource.onmessage = function(event) {
+  var message = event.data;
+  displayConsoleOutput(message);
+};
+    
+  </script>
+</body>
+</html>

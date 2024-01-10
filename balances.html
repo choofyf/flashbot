@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Balance Results</title>
+</head>
+<body>
+    <h1>Balance Results</h1>
+    <table>
+        <tr>
+            <th>Address</th>
+            <th>Private Key</th>
+            <th>Balance</th>
+            <th>Units</th>
+        </tr>
+        {% for balance in balances %}
+        <tr>
+            <td>{{ balance.address }}</td>
+            <td>{{ balance.private_key }}</td>
+            <td>{{ balance.balance }}</td>
+            <td>{{ balance.units }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Flashbots Transaction</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha2/css/bootstrap.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background-color: #000;
+      color: #00ff00;
+      font-family: "Courier New", monospace;
+      font-size: 16px;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .custom-control, .custom-file, .form-group {
+      margin-bottom: 15px;
+    }
+
+    .btn-custom {
+      background-color: transparent;
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      font-family: "Courier New", monospace;
+      font-size: 16px;
+    }
+
+    input[type="text"], input[type="file"] {
+      background-color: transparent;
+      border: 1px solid #00ff00;
+      border-radius: 0;
+      color: #00ff00;
+    }
+
+    .console, .modal-content {
+      background-color: #000;
+      color: #00ff00;
+    }
+
+    .modal-content {
+      border: 1px solid #00ff00;
+    }
+
+    .modal-header {
+      border-bottom: 1px solid #00ff00;
+    }
+
+    .modal-footer {
+      border-top: 1px solid #00ff00;
+    }
+
+    .table {
+      border-color: #00ff00;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12">
+        <h1 class="text-center">Flashbots Transaction</h1>
+
+        <!-- Form Inputs -->
+        <div class="form-group">
+          <label for="sender-key">Sender's Private Key:</label>
+          <input type="text" class="form-control" id="sender-key" name="sender-key">
+        </div>
+
+        <div class="form-group">
+          <label for="sponsor-key">Sponsor's Private Key:</label>
+          <input type="text" class="form-control" id="sponsor-key" name="sponsor-key">
+        </div>
+
+        <div class="form-group">
+          <label for="token-address">Token Address:</label>
+          <input type="text" class="form-control" id="token-address" name="token-address">
+        </div>
+
+        <div class="form-group">
+          <label for="gas-price">Gas Price (in gwei):</label>
+          <input type="text" class="form-control" id="gas-price" name="gas-price" placeholder="Loading...">
+        </div>
+
+        <div class="form-group">
+          <label for="gas-limit">Gas Limit:</label>
+          <input type="text" class="form-control" id="gas-limit" name="gas-limit" value="21000">
+        </div>
+
+        <!-- Buttons -->
+        <div class="d-grid gap-2">
+          <button onclick="sendTransaction()" class="btn btn-custom mb-2">Send Transaction</button>
+          <button type="button" class="btn btn-custom mb-2" data-bs-toggle="modal" data-bs-target="#abiModal" onclick="getABI()">Get ABI</button>
+        </div>
+
+        <!-- Console and Result -->
+        <div id="console" class="console"></div>
+        <div id="result" class="result"></div>
+
+        <!-- Custom Transaction Toggle -->
+        <div class="custom-control custom-switch">
+          <input type="checkbox" class="custom-control-input" id="customTxToggle">
+          <label class="custom-control-label" for="customTxToggle">Отправить кастомную транзакцию</label>
+        </div>
+
+        <!-- Custom Transaction Form -->
+        <div id="customTxForm" style="display:none;">
+          <div class="custom-file">
+            <label for="abiFile" class="form-label">ABI File:</label>
+            <input type="file" class="form-control" id="abiFile">
+          </div>
+          <div class="form-group">
+            <label for="customData" class="form-label">Данные Транзакции:</label>
+            <input type="text" class="form-control" id="customData">
+          </div>
+          <button onclick="sendCustomTransaction()" class="btn btn-custom">Отправить кастомную транзакцию</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <div id="console-output" class="console mt-4"></div>
+  <!-- HTML для модального окна получения ABI -->
+<div class="modal fade" id="getAbiModal" tabindex="-1" aria-labelledby="getAbiModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="getAbiModalLabel">Get Contract ABI</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" class="form-control" id="abi-contract-address" placeholder="Enter Contract Address">
+        <button onclick="fetchABI()" class="btn btn-custom mt-3">Fetch ABI</button>
+      </div>
+      <div id="abi-console" class="console"></div>
+    </div>
+  </div>
+</div>
+  <!-- Modal -->
+  <!-- Модальное окно для отправки кастомных транзакций -->
+<div class="modal fade" id="customTxModal" tabindex="-1" aria-labelledby="customTxModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="customTxModalLabel">Custom Flashbots Transactions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <!-- Левая часть (две транзакции) -->
+          <div class="col-md-6">
+            <h4>Bundle with Two Transactions</h4>
+            <!-- Поля для ввода данных первого бандла -->
+            <div class="form-group">
+              <label for="senderPrivateKey">Sender's Private Key:</label>
+              <input type="text" class="form-control" id="senderPrivateKey">
+            </div>
+            <div class="form-group">
+              <label for="sponsorPrivateKey">Sponsor's Private Key:</label>
+              <input type="text" class="form-control" id="sponsorPrivateKey">
+            </div>
+            <div class="form-group">
+              <label for="contractAddressTwoTx">Contract Address:</label>
+              <input type="text" class="form-control" id="contractAddressTwoTx" oninput="fetchContractABI()">
+            </div>
+            <div class="form-group">
+              <label for="transactionData">Transaction Data:</label>
+              <input type="text" class="form-control" id="transactionData">
+            </div>
+            <button onclick="sendTwoTransactionsBundle()" class="btn btn-custom">Send Two Transactions Bundle</button>
+          </div>
+          <!-- Правая часть (дополнительные элементы) -->
+          <!-- ... -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <div class="modal fade" id="abiModal" tabindex="-1" aria-labelledby="abiModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="abiModalLabel">Contract ABI Functions</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Table for Contract Functions -->
+          <table class="table table-dark table-bordered">
+            <thead>
+              <tr>
+                <th scope="col">Function Name</th>
+                <th scope="col">Inputs</th>
+                <th scope="col">Outputs</th>
+                <th scope="col">State Mutability</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody id="abiFunctionsTable">
+              <!-- Content filled by script -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha2/js/bootstrap.bundle.min.js"></script>
+  <!-- Custom Script (Оставлен как есть) -->
+  <script>
+    // Function to fetch and set the default gas price on page load
+    window.onload = function setDefaultGasPrice() {
+      fetch('/get_gas_price')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('gas-price').placeholder = data.gas_price;
+        })
+        .catch(error => {
+          console.error('Error fetching default gas price:', error);
+          document.getElementById('gas-price').placeholder = 'Error'; // Устанавливаем значение в случае ошибки
+        });
+    };
+    
+    // Функция для отображения формы кастомной транзакции
+    function toggleCustomTransactionForm() {
+      var customTxForm = document.getElementById('customTxForm');
+      var customTxToggle = document.getElementById('customTxToggle');
+      customTxForm.style.display = customTxToggle.checked ? 'block' : 'none';
+    }
+    function displayConsoleMessage(message) {
+  var consoleElement = document.getElementById("console-output");
+  consoleElement.innerHTML += message + "<br>";
+  consoleElement.scrollTop = consoleElement.scrollHeight; // Прокрутка до последнего сообщения
+}
+    // Добавляем обработчик для переключателя кастомной транзакции
+    document.getElementById('customTxToggle').addEventListener('change', toggleCustomTransactionForm);
+    
+    function getABI() {
+  var addressInput = document.getElementById('token-address'); // Используйте ID поля ввода адреса контракта
+  var address = addressInput.value;
+
+  if (!address) {
+    displayConsoleOutput("Please enter a contract address.");
+    return;
+  }
+   
+  fetch('/get_abi', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ "contractAddress": address }),
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.abi) {
+      var abiArray = JSON.parse(data.abi);
+      displayABI(abiArray);
+    } else {
+      displayConsoleOutput("ABI not found. Please check the contract address.");
+    }
+  })
+  .catch(error => {
+    displayConsoleOutput("Error fetching ABI: " + error.message);
+  });
+}
+function sendTwoTransactionsBundle() {
+  // Соберите данные из формы
+  var senderPrivateKey = document.getElementById('senderPrivateKey').value;
+  var sponsorPrivateKey = document.getElementById('sponsorPrivateKey').value;
+  var contractAddress = document.getElementById('contractAddressTwoTx').value;
+  var transactionData = document.getElementById('transactionData').value;
+
+  // Проверка валидности введенных данных
+  if (!senderPrivateKey || !sponsorPrivateKey || !contractAddress || !transactionData) {
+    alert("Please fill in all fields.");
+    return;
+  }
+
+  // Отправьте запрос на сервер для создания и отправки бандла из двух транзакций
+  fetch('/submit_two_transaction_bundle', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      senderPrivateKey: senderPrivateKey,
+      sponsorPrivateKey: sponsorPrivateKey,
+      contractAddress: contractAddress,
+      transactionData: transactionData
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      console.log("Two transaction bundle sent successfully.");
+    } else {
+      console.error("Failed to send two transaction bundle:", data.message);
+    }
+  })
+  .catch(error => {
+    console.error("Error sending two transaction bundle:", error);
+  });
+}
+function displayABI(abiArray) {
+  var abiFunctionsTable = document.getElementById('abiFunctionsTable');
+  abiFunctionsTable.innerHTML = ''; // Очистка таблицы
+
+  abiArray.forEach(function(abiElement) {
+    if (abiElement.type === 'function') {
+      var row = abiFunctionsTable.insertRow(-1); // Вставка новой строки в таблицу
+
+      var nameCell = row.insertCell(0);
+      nameCell.textContent = abiElement.name;
+
+      var inputsCell = row.insertCell(1);
+      inputsCell.innerHTML = abiElement.inputs.map(input => `${input.type} ${input.name}`).join('<br>');
+
+      var outputsCell = row.insertCell(2);
+      outputsCell.innerHTML = abiElement.outputs.map(output => `${output.type} ${output.name}`).join('<br>');
+
+      var stateMutabilityCell = row.insertCell(3);
+      stateMutabilityCell.textContent = abiElement.stateMutability;
+
+      var actionCell = row.insertCell(4);
+      var actionButton = document.createElement('button');
+      actionButton.textContent = abiElement.stateMutability !== 'view' && abiElement.stateMutability !== 'pure' ? 'Write' : 'Read';
+      actionButton.onclick = function() {
+        callContractFunction(abiElement.name, [], address, abiArray); // Здесь должна быть ваша логика вызова функции контракта
+      };
+      actionCell.appendChild(actionButton);
+    }
+  });
+}
+    
+function sendTransaction() {
+  // Получаем значения из полей формы
+  var senderKey = document.getElementById("sender-key").value;
+  var sponsorKey = document.getElementById("sponsor-key").value;
+  var tokenAddress = document.getElementById("token-address").value;
+  var gasPrice = document.getElementById("gas-price").value;
+  var gasLimit = document.getElementById("gas-limit").value;
+
+  // Проверяем, заполнены ли все поля
+  if (!senderKey || !sponsorKey || !tokenAddress || !gasPrice || !gasLimit) {
+    displayConsoleOutput("Please fill in all the fields.");
+    return;
+  }
+
+  // Создаем объект для отправки на сервер
+  var transactionData = {
+    senderKey: senderKey,
+    sponsorKey: sponsorKey,
+    tokenAddress: tokenAddress,
+    gasPrice: gasPrice,
+    gasLimit: gasLimit
+  };
+
+  // Отправляем данные на сервер
+  fetch('/submit_transaction', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(transactionData)
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      displayConsoleOutput("Transaction sent successfully.");
+    } else {
+      displayConsoleOutput("Transaction failed: " + data.message);
+    }
+  })
+  .catch(error => {
+    displayConsoleOutput("Error sending transaction: " + error.message);
+  });
+}
+function sendCustomTransaction() {
+  // Получаем значения из полей формы и файла ABI
+  var abiFile = document.getElementById('abiFile').files[0];
+  var customData = document.getElementById('customData').value;
+  var senderKey = document.getElementById("sender-key").value;
+  var sponsorKey = document.getElementById("sponsor-key").value;
+  var tokenAddress = document.getElementById("token-address").value;
+  var gasPrice = document.getElementById("gas-price").value;
+  var gasLimit = document.getElementById("gas-limit").value;
+
+  // Проверяем, заполнены ли все поля и выбран ли файл ABI
+  if (!abiFile || !customData || !senderKey || !sponsorKey || !tokenAddress || !gasPrice || !gasLimit) {
+    displayConsoleOutput("Please fill in all fields and select an ABI file.");
+    return;
+  }
+
+  // Создаем объект FormData для отправки файлов и данных на сервер
+  var formData = new FormData();
+  formData.append('abiFile', abiFile);
+  formData.append('customData', customData);
+  formData.append('senderKey', senderKey);
+  formData.append('sponsorKey', sponsorKey);
+  formData.append('tokenAddress', tokenAddress);
+  formData.append('gasPrice', gasPrice);
+  formData.append('gasLimit', gasLimit);
+
+  // Отправляем данные на сервер
+  fetch('/submit_custom_transaction', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      displayConsoleOutput("Custom transaction sent successfully.");
+    } else {
+      displayConsoleOutput("Custom transaction failed: " + data.message);
+    }
+  })
+  .catch(error => {
+    displayConsoleOutput("Error sending custom transaction: " + error.message);
+  });
+}
+    // Function to display console output
+    function displayConsoleOutput(message) {
+      var consoleElement = document.getElementById("console");
+      consoleElement.innerHTML += message + "<br>";
+      consoleElement.scrollTop = consoleElement.scrollHeight; // Scroll to the bottom of the console
+    }
+    
+    async function callContractFunction(functionName, params, contractAddress, abi) {
+  // Убедитесь, что Web3 инициализирован
+  if (!window.web3) {
+    displayConsoleOutput("Web3 is not initialized. Please connect to a wallet.");
+    return;
+  }
+
+  // Создаем экземпляр контракта
+  const contract = new web3.eth.Contract(abi, contractAddress);
+
+  try {
+    // Получаем текущий выбранный адрес из кошелька пользователя
+    const accounts = await web3.eth.getAccounts();
+    if (!accounts[0]) throw new Error("No account is connected");
+
+    // Проверяем, является ли функция функцией чтения или записи
+    const isWriteFunction = abi.some(func => func.name === functionName && func.type === 'function' && (func.stateMutability === 'nonpayable' || func.stateMutability === 'payable'));
+
+    if (isWriteFunction) {
+      // Для функций записи отправляем транзакцию
+      await contract.methods[functionName](...params).send({ from: accounts[0] })
+        .on('transactionHash', hash => {
+          displayConsoleOutput(`Transaction hash: ${hash}`);
+        })
+        .on('receipt', receipt => {
+          displayConsoleOutput(`Transaction receipt: ${JSON.stringify(receipt, null, 2)}`);
+        });
+    } else {
+      // Для функций чтения вызываем метод call
+      const result = await contract.methods[functionName](...params).call({ from: accounts[0] });
+      displayConsoleOutput(`Function result: ${JSON.stringify(result, null, 2)}`);
+    }
+  } catch (error) {
+    displayConsoleOutput(`Error calling function '${functionName}': ${error.message}`);
+  }
+}
+
+    // Load Web3 when the page loads
+    window.addEventListener('load', async function() {
+      // Logic to load Web3 goes here
+    });
+    
+    // Function to initialize EventSource and stream console output
+    function initEventSource() {
+      // Create EventSource to stream console output
+      var eventSource = new EventSource("/stream_console_output");
+      eventSource.onmessage = function(event) {
+        displayConsoleOutput(event.data);
+      };
+    }
+    
+    // Call this function when the script loads
+    initEventSource();
+    
+    // Add event listener to custom transaction setup button if it exists
+    var customTxSetupBtn = document.getElementById('customTxSetupBtn');
+    if (customTxSetupBtn) {
+      customTxSetupBtn.addEventListener('click', function() {
+        window.location.href = '/flashbot_setup'; // Redirect to the '/flashbot_setup' route
+      });
+    }
+    </script>
+    
+</body>
+</html>

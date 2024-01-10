@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ContractCaller Интерфейс для BSC</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/superhero/bootstrap.min.css" rel="stylesheet" integrity="sha384-oW6X3l8aRYk4qzRmM8zX2WnjaE2Y3d5t5l6KCK9d9hUrbY5qsG5b2uRWXR+LpF1V" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.3.0/dist/web3.min.js"></script>
+</head>
+<body>
+
+<div class="container mt-5">
+    <h2 class="text-center mb-5">ContractCaller Интерфейс для BSC</h2>
+
+    <div class="card mb-4">
+        <div class="card-header">Добавить сигнатуру функции</div>
+        <div class="card-body">
+            <div class="input-group mb-3">
+                <input type="text" id="functionSignature" class="form-control" placeholder="Сигнатура функции">
+                <div class="input-group-append">
+                    <button onclick="addFunctionSignature()" class="btn btn-primary">Добавить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">Выполнить чтение вызова</div>
+        <div class="card-body">
+            <div class="form-group">
+                <input type="text" id="targetContract" class="form-control mb-2" placeholder="Адрес целевого контракта">
+                <input type="text" id="addressCheck" class="form-control mb-2" placeholder="Проверка адреса">
+                <button onclick="executeReadCall()" class="btn btn-success btn-block">Выполнить</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="output" class="response card">
+        <div class="card-header">Результат</div>
+        <div class="card-body">
+            <pre></pre>
+        </div>
+    </div>
+</div>
+
+<script>
+    let web3;
+    let contractInstance;
+    const contractAddress = "0x06E19441111B2eA97ec55808B366dA53552dACb8";
+    const abi = [{"inputs":[{"internalType":"string","name":"newFunctionSignature","type":"string"}],"name":"addFunctionSignature","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"inputs":[{"internalType":"address","name":"targetContract","type":"address"},{"internalType":"address","name":"addressCheck","type":"address"}],"name":"executeReadCall","outputs":[{"internalType":"bytes4[]","name":"methodIds","type":"bytes4[]"},{"internalType":"bytes[]","name":"returnDatas","type":"bytes[]"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"functionSignatures","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}];
+
+    web3 = new Web3(new Web3.providers.HttpProvider("https://bsc-dataseed.binance.org/")); 
+
+    async function initContract() {
+        contractInstance = new web3.eth.Contract(abi, contractAddress);
+    }
+
+    async function addFunctionSignature() {
+        const funcSig = document.getElementById('functionSignature').value;
+
+        try {
+            const receipt = await contractInstance.methods.addFunctionSignature(funcSig).send({ from: "0x08B46b9693c4D6472C9718fe586c7caaD86b37C9" });
+            document.getElementById('output').innerText = "Сигнатура функции успешно добавлена!";
+            document.getElementById('output').innerHTML += "<pre>" + JSON.stringify(receipt, null, 2) + "</pre>";
+        } catch (error) {
+            console.error(error);
+            document.getElementById('output').innerText = "Ошибка при добавлении сигнатуры функции!";
+        }
+    }
+
+    async function executeReadCall() {
+        const target = document.getElementById('targetContract').value;
+        const address = document.getElementById('addressCheck').value;
+
+        try {
+            const result = await contractInstance.methods.executeReadCall(target, address).call();
+            document.getElementById('output').innerText = "Результат вызова:";
+            document.getElementById('output').innerHTML += "<pre>" + JSON.stringify(result, null, 2) + "</pre>";
+        } catch (error) {
+            console.error(error);
+            document.getElementById('output').innerText = "Ошибка при чтении вызова!";
+        }
+    }
+
+    window.onload = async () => {
+        await initContract();
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройка транзакции</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+    body {
+    background-color: #000; /* Черный фон страницы */
+    color: #00ff00; /* Ярко-зеленый цвет текста */
+    font-family: 'Courier New', monospace; /* Шрифт Courier New с моноширинным шрифтом в качестве запасного варианта */
+    font-size: 16px; /* Размер шрифта */
+}
+
+.container {
+    margin-top: 50px; /* Верхний отступ контейнера */
+}
+
+/* Стили для элементов формы */
+.form-group label {
+    color: #00ff00; /* Цвет меток формы */
+}
+
+.form-control {
+    background-color: #000; /* Фоновый цвет полей ввода */
+    color: #00ff00; /* Цвет текста полей ввода */
+    border: 1px solid #00ff00; /* Граница полей ввода */
+}
+
+.btn-primary {
+    background-color: #000; /* Фоновый цвет кнопок */
+    border-color: #00ff00; /* Цвет границы кнопок */
+}
+
+.btn-primary:hover {
+    background-color: #00ff00; /* Фоновый цвет кнопок при наведении */
+    border-color: #000; /* Цвет границы кнопок при наведении */
+}
+
+/* Стили для сообщения сервера */
+#serverResponse {
+    border: 1px solid; /* Граница сообщения */
+}
+
+/* Приоритетные стили для сообщений об успехе и ошибке */
+.alert-success {
+    color: #00ff00; /* Цвет текста для успешного сообщения */
+    background-color: #000; /* Фон для успешного сообщения */
+    border-color: #00ff00; /* Граница для успешного сообщения */
+}
+
+.alert-danger {
+    color: #ff0000; /* Цвет текста для сообщения об ошибке */
+    background-color: #000; /* Фон для сообщения об ошибке */
+    border-color: #ff0000; /* Граница для сообщения об ошибке */
+}
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="mb-4">Настройка Flashbots транзакции</h2>
+        <form id="transactionForm" action="/submit_flashbots_transaction" method="post">
+            <div class="form-group">
+                <label for="sender_private_key">Приватный ключ отправителя:</label>
+                <input type="text" class="form-control" id="sender_private_key" name="sender_private_key" required>
+            </div>
+            <div class="form-group">
+                <label for="sponsor_private_key">Приватный ключ спонсора:</label>
+                <input type="text" class="form-control" id="sponsor_private_key" name="sponsor_private_key" required>
+            </div>
+            <div class="form-group">
+                <label for="token_address">Адрес токена:</label>
+                <input type="text" class="form-control" id="token_address" name="token_address" required>
+            </div>
+            <div class="form-group">
+                <label for="receiver_address">Адрес получателя:</label>
+                <input type="text" class="form-control" id="receiver_address" name="receiver_address" required>
+            </div>
+            <div class="form-group">
+                <label for="amount_eth">Сумма ETH для перевода:</label>
+                <input type="text" class="form-control" id="amount_eth" name="amount_eth" required>
+            </div>
+            <div class="form-group">
+                <label for="data">Данные транзакции (hex):</label>
+                <input type="text" class="form-control" id="data" name="data">
+            </div>
+            <div class="form-group">
+                <label for="gas_price">Цена газа (в Gwei):</label>
+                <input type="text" class="form-control" id="gas_price" name="gas_price" required>
+            </div>
+            <div class="form-group">
+                <label for="gas_limit">Лимит газа:</label>
+                <input type="text" class="form-control" id="gas_limit" name="gas_limit" required>
+            </div>
+            <div class="form-group">
+                <label for="max_priority_fee_per_gas">Приоритетная цена газа (в Gwei):</label>
+                <input type="text" class="form-control" id="max_priority_fee_per_gas" name="max_priority_fee_per_gas" required>
+            </div>
+            <div class="form-group">
+                <label for="block_number">Номер блока для отправки:</label>
+                <input type="text" class="form-control" id="block_number" name="block_number" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Отправить транзакцию</button>
+            <button type="button" class="btn btn-primary" id="simulateTransactionButton">Симулировать транзакцию</button>
+            <button type="button" class="btn btn-secondary" id="goBackButton">Закрыть</button>
+        </form>
+        <div id="serverResponse" class="mt-3 alert" role="alert" style="display: none;"></div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.4.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        // Скрипт для отправки данных формы через AJAX
+        document.getElementById('transactionForm').onsubmit = function(event) {
+            event.preventDefault(); // Предотвращаем обычную отправку формы
+            var formData = new FormData(this);
+            fetch('/submit_flashbots_transaction', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message))
+            .catch(error => console.error('Error:', error));
+        };
+        function fetchGasAndBlockData() {
+        fetch('/current_gas_and_block')
+        .then(response => response.json())
+        .then(data => {
+            // Проверяем, что данные получены успешно
+            if (data.success) {
+                // Заполняем поля формы данными
+                document.getElementById('gas_price').value = data.gasPrice || '';
+                document.getElementById('gas_limit').value = data.gasLimit || '';
+                document.getElementById('max_priority_fee_per_gas').value = data.priorityGasPrice || '';
+                document.getElementById('block_number').value = data.blockNumber || '';
+            } else {
+                // Обработка ошибки, если данные не получены
+                console.error('Не удалось получить данные о газе и блоке: ', data.message);
+            }
+        })
+        .catch(error => {
+            // Обработка ошибки запроса
+            console.error('Ошибка запроса данных о газе и блоке: ', error);
+        });
+    }
+
+    // Вызываем функцию при загрузке страницы
+    window.addEventListener('load', fetchGasAndBlockData);
+        // Скрипт для симуляции транзакции и отображения ответа сервера
+        document.getElementById('simulateTransactionButton').onclick = function() {
+            var formData = new FormData(document.getElementById('transactionForm'));
+            // Преобразуем FormData в JSON
+            var object = {};
+            formData.forEach((value, key) => object[key] = value);
+            var json = JSON.stringify(object);
+
+            fetch('/simulate_transaction', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: json
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Показываем и заполняем поле для ответа сервера
+                var responseDiv = document.getElementById('serverResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'alert ' + (data.success ? 'alert-success' : 'alert-danger');
+                responseDiv.textContent = data.message;
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                var responseDiv = document.getElementById('serverResponse');
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'alert alert-danger';
+                responseDiv.textContent = 'Ошибка при симуляции транзакции: ' + error;
+            });
+        };
+        document.getElementById('goBackButton').onclick = function() {
+        window.history.back();
+    };
+    </script>
+</body>
+</html>
